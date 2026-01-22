@@ -33,6 +33,16 @@ Cerberus Orbit is a cutting-edge, interactive 3D space visualization platform th
 
 ---
 
+## 🛠️ Screenshots
+
+<img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/fa36755a-d062-4be3-bfce-dd8137c739ba" />
+
+<img width="1920" height="1080" alt="2" src="https://github.com/user-attachments/assets/5038f684-9242-463c-9e82-3d9760d91959" />
+
+<img width="1920" height="1080" alt="3" src="https://github.com/user-attachments/assets/de5333ee-4a5a-49ed-9227-52b97ee0ceb2" />
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
@@ -56,7 +66,6 @@ Open your browser and navigate to:
 - `web/`: The frontend application (HTML/JS/Textures).
 - `server/`: WebSocket server for streaming tracking data to the browser.
 - `hand_tracking/`: AI logic for hand landmark detection and gesture classification.
-- `data/`: AI model files (`hand_landmarker.task`).
 
 ---
 
