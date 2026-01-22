@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cerberus Orbit - Gesture Controlled Cosmology</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* HUD Interface */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 300;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+            display: inline-block;
+        }
+
+        .subtitle {
+            font-size: 10px;
+            color: #00d2ff;
+            margin-top: 5px;
+        }
+
+        #status-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+        }
+
+        .status-item {
+            margin-bottom: 5px;
+        }
+
+        .active {
+            color: #00ff88;
+            text-shadow: 0 0 5px #00ff88;
+        }
+
+        .disconnected {
+            color: #ff3333;
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .hint-icon {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 5px;
+            color: #00d2ff;
+        }
+
+        #mode-selector {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            color: rgba(0, 210, 255, 0.8);
+            padding: 8px 15px;
+            font-size: 11px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            text-align: left;
+            width: 150px;
+        }
+
+        .mode-btn:hover,
+        .mode-btn.active-mode {
+            background: rgba(0, 210, 255, 0.2);
+            border-color: #00d2ff;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00d2ff;
+            font-size: 14px;
+            letter-spacing: 4px;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">INITIALIZING VISUALIZATION ENGINE...</div>
+
+    <div id="connection-overlay"
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #00d2ff; font-family: monospace;">
+        <div style="font-size: 24px; letter-spacing: 5px; margin-bottom: 20px; text-shadow: 0 0 10px #00d2ff;">
+            CONNECTING TO NEURAL LINK...</div>
+        <div style="font-size: 14px; color: #666;">ESTABLISHING WEBSOCKET CONNECTION (ws://localhost:8765)</div>
+        <div id="connection-retry" style="margin-top: 20px; font-size: 12px; color: #ff3333; display: none;">CONNECTION
+            FAILED. RETRYING...</div>
+    </div>
+
+    <div id="error-console"
+        style="position: absolute; top: 0; left: 0; width: 100%; background: rgba(200, 0, 0, 0.9); color: white; padding: 20px; display: none; z-index: 10000; font-family: monospace;">
+        <strong>SYSTEM ERROR:</strong> <span id="error-message"></span>
+    </div>
+
+    <script>
+        window.onerror = function (msg, url, line, col, error) {
+            const el = document.getElementById('error-console');
+            const msgEl = document.getElementById('error-message');
+            el.style.display = 'block';
+            msgEl.innerText = `${msg}\nAt: ${url}:${line}:${col}\nPlease share this with the developer.`;
+            return false;
+        };
+
+        // Catch unhandled promise rejections (e.g. async imports)
+        window.onunhandledrejection = function (event) {
+            const el = document.getElementById('error-console');
+            const msgEl = document.getElementById('error-message');
+            el.style.display = 'block';
+            msgEl.innerText = `PROMISE REJECTION: ${event.reason}`;
+        };
+    </script>
+
+    <div id="hud">
+        <h1>CERBERUS ORBIT</h1>
+        <div class="subtitle">GESTURE CONTROLLED COSMOLOGY EXPLORER</div>
+    </div>
+
+    <div id="status-panel">
+        <div class="status-item" id="connection-status">WEBSOCKET: <span class="disconnected">DISCONNECTED</span></div>
+        <div class="status-item" id="fps-counter">FPS: 0</div>
+        <div class="status-item" id="gesture-debug">GESTURE: NONE</div>
+    </div>
+
+    <div id="mode-selector">
+        <div class="mode-btn active-mode" onclick="window.switchMode('SOLAR')">01 // SOLAR SYSTEM</div>
+        <div class="mode-btn" onclick="window.switchMode('GALAXY')">02 // MILKY WAY</div>
+        <div class="mode-btn" onclick="window.switchMode('COSMIC')">03 // COSMIC WEB</div>
+    </div>
+
+    <div id="controls-hint"
+        style="background: rgba(0,0,0,0.6); padding: 10px 30px; border-radius: 50px; border: 1px solid rgba(0, 210, 255, 0.2); backdrop-filter: blur(5px);">
+        <div><span class="hint-icon">✊</span>FIST = ROTATE</div>
+        <div style="width: 1px; height: 25px; background: rgba(255,255,255,0.1); margin: 0 10px; align-self: center;">
+        </div>
+        <div><span class="hint-icon">🤏</span>PINCH = ZOOM</div>
+        <div style="width: 1px; height: 25px; background: rgba(255,255,255,0.1); margin: 0 10px; align-self: center;">
+        </div>
+        <div><span class="hint-icon">☝️</span>POINT = SELECT / PAN</div>
+    </div>
+
+    <!-- Visual Cursor -->
+    <div id="gesture-cursor"
+        style="position: absolute; width: 40px; height: 40px; border: 2px solid #00ff88; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; display: none; z-index: 5000; box-shadow: 0 0 10px #00ff88;">
+        <div
+            style="width: 4px; height: 4px; background: #00ff88; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%;">
+        </div>
+    </div>
+
+    <!-- Planet Details Panel -->
+    <div id="details-panel"
+        style="position: absolute; top: 100px; right: 20px; width: 300px; background: rgba(0,0,0,0.8); border: 1px solid #00d2ff; padding: 20px; border-radius: 5px; opacity: 0; transition: opacity 0.5s; pointer-events: none;">
+        <h2 id="detail-title" style="margin: 0 0 10px 0; color: #00d2ff; font-weight: 300; letter-spacing: 2px;">PLANET
+            NAME</h2>
+        <div id="detail-desc" style="color: #ccc; font-size: 13px; line-height: 1.5;">Description goes here...</div>
+        <div
+            style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px; font-size: 10px; color: #888;">
+            <div>DISTANCE: <span id="detail-dist" style="color: #fff;">0 AU</span></div>
+            <div>SIZE: <span id="detail-size" style="color: #fff;">0 KM</span></div>
+            <div style="margin-top: 5px; color: #00d2ff;">PHYSICAL PROPERTIES:</div>
+            <div>TEMPERATURE: <span id="detail-temp" style="color: #fff;">N/A</span></div>
+            <div>ATMOSPHERE: <span id="detail-atmos" style="color: #fff;">N/A</span></div>
+            <div>GRAVITY: <span id="detail-gravity" style="color: #fff;">N/A</span></div>
+            <div>DAY LENGTH: <span id="detail-day" style="color: #fff;">N/A</span></div>
+            <div>MOONS: <span id="detail-moons" style="color: #fff;">0</span></div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Camera Feed -->
+    <div id="camera-feed-container"
+        style="position: absolute; bottom: 20px; right: 20px; width: 240px; height: 180px; border: 2px solid #00d2ff; background: #000; overflow: hidden; border-radius: 10px;">
+        <img id="camera-feed" src="" style="width: 100%; height: 100%; object-fit: cover;" alt="Camera Feed">
+    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- Main Application Scripts -->
+    <script type="module" src="scene.js"></script>
+</body>
+
+</html>
